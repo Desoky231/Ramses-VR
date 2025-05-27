@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "com.meta.xr.sdk.all": "76.0.1",
     "com.unity.collab-proxy": "2.8.2",
     "com.unity.feature.development": "1.0.1",
     "com.unity.feature.vr": "1.0.0",
@@ -10,7 +11,7 @@
     "com.unity.timeline": "1.7.7",
     "com.unity.visualscripting": "1.9.4",
     "com.unity.xr.interaction.toolkit": "3.1.1",
-    "com.unity.xr.management": "4.5.0",
+    "com.unity.xr.management": "4.5.1",
     "com.unity.xr.openxr": "1.14.1",
     "com.unity.modules.ai": "1.0.0",
     "com.unity.modules.androidjni": "1.0.0",
