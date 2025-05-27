@@ -3,81 +3,87 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.XR;
 
-/// Hold right trigger to talk; release to send.
-/// Safer version – no false “micro-taps”.
+/// Hold X (left controller) to record; release to send.
 [RequireComponent(typeof(AudioSource))]
 public class RecorderVR : MonoBehaviour
 {
+    /* ───────────── Microphone ───────────── */
     [Header("Microphone")]
     [SerializeField] private string micDevice = null;
     [SerializeField] private int sampleRate = 44100;
     [SerializeField] private int maxLengthSec = 30;
-    [SerializeField] private float minValidLengthSec = 0.25f;   // ← NEW
+    [SerializeField] private float minValidLengthSec = 0.25f;
 
     private AudioClip recordedClip;
     private bool isRecording = false;
     private Coroutine autoStopCo = null;
 
-    private InputDevice rightHand = default;
+    /* ───────────── XR input ───────────── */
+    private InputDevice leftHand = default;      // ← now LEFT hand
     private bool btnHeld = false;
-    private double recordStartTime;
 
-    /* ─────────── device discovery ─────────── */
+    /* ───────────── Device discovery ───────────── */
     private void OnEnable()
     {
         InputDevices.deviceConnected += OnDeviceChange;
         InputDevices.deviceDisconnected += OnDeviceChange;
-        FindRightHand();
+        FindLeftHand();
     }
     private void OnDisable()
     {
         InputDevices.deviceConnected -= OnDeviceChange;
         InputDevices.deviceDisconnected -= OnDeviceChange;
     }
-    private void OnDeviceChange(InputDevice _) => FindRightHand();
-    private void FindRightHand()
+    private void OnDeviceChange(InputDevice _) => FindLeftHand();
+
+    private void FindLeftHand()
     {
-        var list = new List<InputDevice>();
+        var devices = new List<InputDevice>();
         InputDevices.GetDevicesWithCharacteristics(
-            InputDeviceCharacteristics.Right |
+            InputDeviceCharacteristics.Left |
             InputDeviceCharacteristics.Controller |
             InputDeviceCharacteristics.HeldInHand,
-            list);
-        rightHand = list.Count > 0 ? list[0] : default;
-        if (rightHand.isValid)
-            Debug.Log($"[RecorderVR] Using {rightHand.name}");
+            devices);
+
+        leftHand = devices.Count > 0 ? devices[0] : default;
+        if (leftHand.isValid)
+            Debug.Log($"[RecorderVR] Using {leftHand.name} (left hand)");
     }
 
-    /* ─────────── poll trigger button ─────────── */
+    /* ───────────── Poll X button ───────────── */
     private void Update()
     {
-        if (!rightHand.isValid) { FindRightHand(); return; }
+        if (!leftHand.isValid) { FindLeftHand(); return; }
 
-        if (!rightHand.TryGetFeatureValue(CommonUsages.triggerButton, out bool pressed))
-            return;     // controller lacks that feature
+        // X button = primaryButton on LEFT controller
+        if (!leftHand.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressed))
+            return;                                         // controller lacks that feature
 
-        if (!btnHeld && pressed)                  // button down
+        if (!btnHeld && pressed)                           // button down
         {
             BeginRecording();
             btnHeld = true;
         }
-        else if (btnHeld && !pressed)             // button up
+        else if (btnHeld && !pressed)                      // button up
         {
             StopRecordingAndSend();
             btnHeld = false;
         }
     }
 
-    /* ─────────── start / stop ─────────── */
+    /* ───────────── Start / Stop recording ───────────── */
     private void BeginRecording()
     {
         if (isRecording) return;
 
         recordedClip = Microphone.Start(micDevice, false, maxLengthSec, sampleRate);
-        if (recordedClip == null) { Debug.LogError("[RecorderVR] Mic failed"); return; }
+        if (recordedClip == null)
+        {
+            Debug.LogError("[RecorderVR] Mic failed");
+            return;
+        }
 
         isRecording = true;
-        recordStartTime = AudioSettings.dspTime;
         autoStopCo = StartCoroutine(AutoStopRecording());
         Debug.Log("[RecorderVR] ► REC");
     }
@@ -101,7 +107,6 @@ public class RecorderVR : MonoBehaviour
         isRecording = false;
         if (autoStopCo != null) StopCoroutine(autoStopCo);
 
-        /* Ignore accidental taps (< minValidLengthSec) */
         double seconds = samplesRecorded / (double)sampleRate;
         if (seconds < minValidLengthSec)
         {
@@ -111,9 +116,11 @@ public class RecorderVR : MonoBehaviour
 
         float[] data = new float[samplesRecorded * recordedClip.channels];
         recordedClip.GetData(data, 0);
-        AudioClip trimmed = AudioClip.Create("Trimmed", samplesRecorded,
+        AudioClip trimmed = AudioClip.Create("Trimmed",
+                                             samplesRecorded,
                                              recordedClip.channels,
-                                             recordedClip.frequency, false);
+                                             recordedClip.frequency,
+                                             false);
         trimmed.SetData(data, 0);
 
         NetworkManager.Instance.ChatWithAudio(trimmed);
