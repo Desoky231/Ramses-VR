@@ -1,0 +1,28 @@
+fileFormatVersion: 2
+guid: 684443c24f768dd428a655c06956bebe
+ScriptedImporter:
+  internalIDToNameTable: []
+  externalObjects: {}
+  serializedVersion: 2
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
+  script: {fileID: 11500000, guid: 768a5a18fd6eb914f980bf85dd7b34ec, type: 3}
+  importSettings:
+    materials: 1
+    shaderOverrides:
+      metallic: {instanceID: 0}
+      metallicBlend: {instanceID: 0}
+      specular: {instanceID: 0}
+      specularBlend: {instanceID: 0}
+    animationSettings:
+      looping: 0
+      frameRate: 24
+      interpolationMode: -1
+      compressBlendShapeKeyFrames: 1
+      useLegacyClips: 0
+    generateLightmapUVs: 0
+    hardAngle: 88
+    angleError: 8
+    areaError: 15
+    packMargin: 4

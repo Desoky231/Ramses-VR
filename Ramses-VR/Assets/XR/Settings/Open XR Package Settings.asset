@@ -675,7 +675,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2b7365b139f7aec43b23d26b7a48b5a6, type: 3}
   m_Name: MetaQuestTouchPlusControllerProfile Standalone
   m_EditorClassIdentifier: 
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta Quest Touch Plus Controller Profile
   version: 0.0.1
   featureIdInternal: com.unity.openxr.feature.input.metaquestplus
@@ -837,7 +837,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1927c045052a06d49a9b21fdcaa26db6, type: 3}
   m_Name: MetaXRFeature Android
   m_EditorClassIdentifier: 
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta XR Feature
   version: 0.0.1
   featureIdInternal: com.meta.openxr.feature.metaxr
@@ -904,27 +904,23 @@ MonoBehaviour:
   m_Name: Standalone
   m_EditorClassIdentifier: 
   features:
-  - {fileID: 4963040286616351577}
+  - {fileID: 8221564594354640495}
   - {fileID: -8749980634715080836}
-  - {fileID: 4893829345954421791}
-  - {fileID: -4478006660784508864}
-  - {fileID: -6081641041439107477}
-  - {fileID: 32361891232910083}
-  - {fileID: -34596358968032513}
-  - {fileID: 928296757526069075}
+  - {fileID: 9096479736163431129}
+  - {fileID: 5047315830286589360}
+  - {fileID: 6504682016904032715}
+  - {fileID: 5007098057516315081}
+  - {fileID: 2497339995422133549}
+  - {fileID: -5941725581135416239}
   - {fileID: -4647824206626811188}
-  - {fileID: -1028784285735575096}
-  - {fileID: 8348269038749531489}
-  - {fileID: 1339365148654575197}
-  - {fileID: -1657416111313190135}
-  - {fileID: -1425923432929047216}
-  - {fileID: -381482547018402083}
-  - {fileID: 5447152813868908602}
-  - {fileID: -8316650401159007347}
-  - {fileID: 8696673654983134887}
+  - {fileID: 4025793028449617705}
+  - {fileID: 1507748248788215057}
+  - {fileID: 6841333374066517713}
+  - {fileID: 4054846353496584751}
+  - {fileID: 154189092879288027}
   - {fileID: -4731438336562001402}
-  - {fileID: 4135229692886101830}
-  - {fileID: -7494486358618572369}
+  - {fileID: 4890582492822650874}
+  - {fileID: 2220871646205782247}
   - {fileID: 239522605376452086}
   m_renderMode: 1
   m_autoColorSubmissionMode: 1
@@ -1026,7 +1022,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d28f705476c80d47acb3dfade3d3142, type: 3}
   m_Name: MetaXRFoveationFeature Standalone
   m_EditorClassIdentifier: 
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta XR Foveation
   version: 1.0.0
   featureIdInternal: com.meta.openxr.feature.foveation
@@ -1249,11 +1245,6 @@ MonoBehaviour:
   - {fileID: 7497383018830012468}
   - {fileID: 1027242606257235352}
   - {fileID: 7223869130901287869}
-  - {fileID: -4560664337999916552}
-  - {fileID: -3750378096881925395}
-  - {fileID: 5258949785807497016}
-  - {fileID: 1808778449328230164}
-  - {fileID: 460580079378151922}
   - {fileID: -3884623058556172510}
   - {fileID: -5190053797094401786}
   - {fileID: -6078868055869984845}
@@ -1539,7 +1530,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1927c045052a06d49a9b21fdcaa26db6, type: 3}
   m_Name: MetaXRFeature Standalone
   m_EditorClassIdentifier: 
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta XR Feature
   version: 0.0.1
   featureIdInternal: com.meta.openxr.feature.metaxr
@@ -2245,7 +2236,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3d28f705476c80d47acb3dfade3d3142, type: 3}
   m_Name: MetaXRFoveationFeature Android
   m_EditorClassIdentifier: 
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta XR Foveation
   version: 1.0.0
   featureIdInternal: com.meta.openxr.feature.foveation
@@ -2425,7 +2416,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f647cc0545697264a9878224faada6d5, type: 3}
   m_Name: MetaQuestFeature Android
   m_EditorClassIdentifier: 
-  m_enabled: 1
+  m_enabled: 0
   nameUi: Meta Quest Support
   version: 1.0.0
   featureIdInternal: com.unity.openxr.feature.metaquest

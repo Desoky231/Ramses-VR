@@ -1537,8 +1537,6 @@ GameObject:
   - component: {fileID: 361106859356065105}
   - component: {fileID: 2719530396612811805}
   - component: {fileID: 874515878860900979}
-  - component: {fileID: 547579772251325241}
-  - component: {fileID: 6547788828657471916}
   m_Layer: 0
   m_Name: GameObject
   m_TagString: Untagged
@@ -1716,35 +1714,6 @@ MonoBehaviour:
   - masterBlendShapeName: e
     slaves:
     - targetRenderer: {fileID: 0}
---- !u!114 &547579772251325241
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3576171115818081398}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6d9eb750695b46b448195bde5b05d8bb, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  micDevice: 
-  sampleRate: 44100
-  maxLengthSec: 30
-  minValidLengthSec: 0.25
---- !u!114 &6547788828657471916
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 3576171115818081398}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 25a67e8053eea88448d9e1a2d0b72823, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  baseUrl: http://127.0.0.1:8000
 --- !u!1 &3591122105968244439
 GameObject:
   m_ObjectHideFlags: 0

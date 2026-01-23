@@ -9,7 +9,7 @@ public class RecorderVR : MonoBehaviour
 {
     /* ───────────── Microphone ───────────── */
     [Header("Microphone")]
-    [SerializeField] private string micDevice = null;
+    [SerializeField] private string micDevice = null;   // empty → default mic
     [SerializeField] private int sampleRate = 44100;
     [SerializeField] private int maxLengthSec = 30;
     [SerializeField] private float minValidLengthSec = 0.25f;
@@ -19,7 +19,7 @@ public class RecorderVR : MonoBehaviour
     private Coroutine autoStopCo = null;
 
     /* ───────────── XR input ───────────── */
-    private InputDevice leftHand = default;      // ← now LEFT hand
+    private InputDevice leftHand = default;     // ← LEFT controller
     private bool btnHeld = false;
 
     /* ───────────── Device discovery ───────────── */
@@ -38,14 +38,14 @@ public class RecorderVR : MonoBehaviour
 
     private void FindLeftHand()
     {
-        var devices = new List<InputDevice>();
+        var devs = new List<InputDevice>();
         InputDevices.GetDevicesWithCharacteristics(
-            InputDeviceCharacteristics.Left |
-            InputDeviceCharacteristics.Controller |
-            InputDeviceCharacteristics.HeldInHand,
-            devices);
+            InputDeviceCharacteristics.Left
+          | InputDeviceCharacteristics.Controller
+          | InputDeviceCharacteristics.HeldInHand,
+            devs);
 
-        leftHand = devices.Count > 0 ? devices[0] : default;
+        leftHand = devs.Count > 0 ? devs[0] : default;
         if (leftHand.isValid)
             Debug.Log($"[RecorderVR] Using {leftHand.name} (left hand)");
     }
@@ -55,16 +55,16 @@ public class RecorderVR : MonoBehaviour
     {
         if (!leftHand.isValid) { FindLeftHand(); return; }
 
-        // X button = primaryButton on LEFT controller
-        if (!leftHand.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressed))
-            return;                                         // controller lacks that feature
+        // X button = primaryButton on LEFT Touch controller
+        if (!leftHand.TryGetFeatureValue(CommonUsages.primaryButton, out bool pressed)) return;  // no such feature
 
-        if (!btnHeld && pressed)                           // button down
+        if (!btnHeld && pressed)           // button down (first frame)
         {
+            Debug.Log("[RecorderVR] Button clicked");      // <── NEW line
             BeginRecording();
             btnHeld = true;
         }
-        else if (btnHeld && !pressed)                      // button up
+        else if (btnHeld && !pressed)      // button released
         {
             StopRecordingAndSend();
             btnHeld = false;
@@ -76,7 +76,7 @@ public class RecorderVR : MonoBehaviour
     {
         if (isRecording) return;
 
-        recordedClip = Microphone.Start(micDevice, false, maxLengthSec, sampleRate);
+        recordedClip = Microphone.Start(micDevice, false, maxLengthSec, sampleRate);   // uses default mic if name empty :contentReference[oaicite:0]{index=0}
         if (recordedClip == null)
         {
             Debug.LogError("[RecorderVR] Mic failed");
@@ -85,7 +85,7 @@ public class RecorderVR : MonoBehaviour
 
         isRecording = true;
         autoStopCo = StartCoroutine(AutoStopRecording());
-        Debug.Log("[RecorderVR] ► REC");
+        Debug.Log("[RecorderVR] ► REC");                                                 // logs appear via Debug.Log :contentReference[oaicite:1]{index=1}
     }
 
     private IEnumerator AutoStopRecording()
@@ -116,11 +116,9 @@ public class RecorderVR : MonoBehaviour
 
         float[] data = new float[samplesRecorded * recordedClip.channels];
         recordedClip.GetData(data, 0);
-        AudioClip trimmed = AudioClip.Create("Trimmed",
-                                             samplesRecorded,
-                                             recordedClip.channels,
-                                             recordedClip.frequency,
-                                             false);
+        var trimmed = AudioClip.Create(
+            "Trimmed", samplesRecorded,
+            recordedClip.channels, recordedClip.frequency, false);
         trimmed.SetData(data, 0);
 
         NetworkManager.Instance.ChatWithAudio(trimmed);

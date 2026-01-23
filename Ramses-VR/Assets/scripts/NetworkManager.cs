@@ -1,38 +1,51 @@
-﻿using System;
+﻿/*
+ *  NetworkManager.cs
+ *  Sends microphone audio to a FastAPI server, plays the returned MP3,
+ *  and exposes transcript / response strings via callbacks.
+ *  Reads “dropdownSelection.json” each time and forwards the chosen
+ *  language ("en" | "ar") to the API.
+ *
+ *  JSON example:
+ *  {
+ *      "languages" : "Arabic",
+ *      "Character" : "Ramses"
+ *  }
+ */
+
+using System;
 using System.Collections;
-using System.Text;
+using System.IO;
 using UnityEngine;
 using UnityEngine.Networking;
 
-/// <summary>
-/// Sends audio to your FastAPI endpoints (transcribe / ask / chat-with-audio)
-/// and handles the responses. Attach once in any scene; survives scene loads.
-/// </summary>
 public class NetworkManager : MonoBehaviour
 {
-    public static NetworkManager Instance { get; private set; }
-
-    [Header("FastAPI base URL")]
-    [SerializeField] private string baseUrl = "http://127.0.0.1:8000";
-
-    // ───────────────────────────────────────────────────────────────────────
-    // DTOs used by JsonUtility
-    // ───────────────────────────────────────────────────────────────────────
-    [Serializable] private class TranscribeResponse { public string transcript; }
-    [Serializable] private class AskResponse { public string response; }
-
-    // Parse the tiny JSON stuffed in X-Metadata
+    // ════════════════════════════════════════════════════════════════════
+    //  Data-transfer structs
+    // ════════════════════════════════════════════════════════════════════
     [Serializable]
     private struct MetadataHeader
     {
         public string session;
         public string transcript;
         public string response;
+        public string artifact;
     }
 
-    [Serializable] private struct PromptRequest { public string prompt; }
+    [Serializable]
+    private struct UserPrefs        // mirrors dropdownSelection.json
+    {
+        public string languages;                   // "English" | "Arabic"
+        public string Character;
+    }
 
-    // ───────────────────────────────────────────────────────────────────────
+    // ════════════════════════════════════════════════════════════════════
+    //  MonoBehaviour boilerplate
+    // ════════════════════════════════════════════════════════════════════
+    public static NetworkManager Instance { get; private set; }
+
+    [Header("FastAPI base URL")]
+    [SerializeField] private string baseUrl = "http://127.0.0.1:8000";
 
     private void Awake()
     {
@@ -41,29 +54,38 @@ public class NetworkManager : MonoBehaviour
         DontDestroyOnLoad(gameObject);
     }
 
-    // ───────────── PUBLIC API ──────────────────────────────────────────────
-
-    /// <summary>Convert an AudioClip to WAV → /transcribe → transcript.</summary>
-    public void Transcribe(AudioClip clip,
-                           Action<string> onDone = null,
-                           Action<string> onError = null)
+    // ════════════════════════════════════════════════════════════════════
+    //  Utility – load selected language
+    // ════════════════════════════════════════════════════════════════════
+    private static string LoadLanguage()
     {
-        if (clip == null) { onError?.Invoke("Clip was null"); return; }
-        StartCoroutine(PostTranscribeCoroutine(clip, onDone, onError));
+        string jsonPath = Path.Combine(Application.persistentDataPath, "dropdownSelection.json");
+
+        try
+        {
+            if (!File.Exists(jsonPath)) return "en";
+
+            string json = File.ReadAllText(jsonPath);
+            var userPrefs = JsonUtility.FromJson<UserPrefs>(json);
+            string langRaw = userPrefs.languages?.Trim().ToLowerInvariant() ?? "";
+
+            return langRaw switch
+            {
+                "arabic" => "ar",
+                "english" => "en",
+                _ => "en"
+            };
+        }
+        catch
+        {
+            Debug.LogWarning("LoadLanguage: failed to read JSON, defaulting to English");
+            return "en";
+        }
     }
 
-    /// <summary>POST a prompt string to /ask → Gemini reply.</summary>
-    public void AskGemini(string prompt,
-                          Action<string> onDone = null,
-                          Action<string> onError = null)
-    {
-        StartCoroutine(PostAskCoroutine(prompt, onDone, onError));
-    }
-
-    /// <summary>
-    /// One-shot pipeline: upload clip → Whisper → RAG → TTS mp3.
-    /// Auto-plays the reply and returns (transcript, response).
-    /// </summary>
+    // ════════════════════════════════════════════════════════════════════
+    //  PUBLIC API – chat without artifact
+    // ════════════════════════════════════════════════════════════════════
     public void ChatWithAudio(AudioClip clip,
                               Action<string, string> onDone = null,
                               Action<string> onError = null)
@@ -72,69 +94,64 @@ public class NetworkManager : MonoBehaviour
         StartCoroutine(PostChatWithAudioCoroutine(clip, onDone, onError));
     }
 
-    // ───────────── COROUTINES ──────────────────────────────────────────────
-
-    private IEnumerator PostTranscribeCoroutine(AudioClip clip,
-                                                Action<string> onDone,
-                                                Action<string> onError)
-    {
-        byte[] wav = WavUtility.FromAudioClip(clip);
-
-        var form = new WWWForm();
-        form.AddBinaryData("file", wav, "recording.wav", "audio/wav");
-
-        using (UnityWebRequest req = UnityWebRequest.Post($"{baseUrl}/transcribe", form))
-        {
-            yield return req.SendWebRequest();
-
-            if (req.result == UnityWebRequest.Result.Success)
-            {
-                var data = JsonUtility.FromJson<TranscribeResponse>(req.downloadHandler.text);
-                onDone?.Invoke(data?.transcript ?? "");
-            }
-            else onError?.Invoke(req.error);
-        }
-    }
-
-    private IEnumerator PostAskCoroutine(string prompt,
-                                         Action<string> onDone,
-                                         Action<string> onError)
-    {
-        var payload = new PromptRequest { prompt = prompt };
-        byte[] body = Encoding.UTF8.GetBytes(JsonUtility.ToJson(payload));
-
-        using (UnityWebRequest req = new UnityWebRequest($"{baseUrl}/ask", "POST"))
-        {
-            req.uploadHandler = new UploadHandlerRaw(body);
-            req.downloadHandler = new DownloadHandlerBuffer();
-            req.SetRequestHeader("Content-Type", "application/json");
-
-            yield return req.SendWebRequest();
-
-            if (req.result == UnityWebRequest.Result.Success)
-            {
-                var data = JsonUtility.FromJson<AskResponse>(req.downloadHandler.text);
-                onDone?.Invoke(data?.response ?? "");
-            }
-            else onError?.Invoke(req.error);
-        }
-    }
-
-    /// <summary>
-    /// Sends the clip to /chat-with-audio, receives MP3, plays it, returns transcript+reply.
-    /// </summary>
     private IEnumerator PostChatWithAudioCoroutine(AudioClip clip,
                                                    Action<string, string> onDone,
                                                    Action<string> onError)
     {
         byte[] wav = WavUtility.FromAudioClip(clip);
+        string lang = LoadLanguage();
 
         var form = new WWWForm();
         form.AddBinaryData("file", wav, "recording.wav", "audio/wav");
 
-        string url = $"{baseUrl}/chat-with-audio";
+        string url = $"{baseUrl}/chat-with-audio?lang={lang}";
+        Debug.Log($"[NetworkManager] POST {url}");
 
-        // Build POST request but override the download handler for audio
+        yield return SendAndHandleRequest(url, form, onDone, onError);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  PUBLIC API – chat about a specific artifact
+    // ════════════════════════════════════════════════════════════════════
+    public void ChatWithArtifact(AudioClip clip,
+                                 string artifactName,
+                                 Action<string, string> onDone = null,
+                                 Action<string> onError = null)
+    {
+        if (clip == null) { onError?.Invoke("Clip was null"); return; }
+        if (string.IsNullOrEmpty(artifactName))
+        { onError?.Invoke("Artifact name required."); return; }
+
+        StartCoroutine(PostChatWithArtifactCoroutine(clip, artifactName, onDone, onError));
+    }
+
+    private IEnumerator PostChatWithArtifactCoroutine(AudioClip clip,
+                                                      string artifactName,
+                                                      Action<string, string> onDone,
+                                                      Action<string> onError)
+    {
+        byte[] wav = WavUtility.FromAudioClip(clip);
+        string lang = LoadLanguage();
+
+        var form = new WWWForm();
+        form.AddBinaryData("file", wav, "recording.wav", "audio/wav");
+        form.AddField("artifact", artifactName);
+        form.AddField("lang", lang);              // ← name matches FastAPI
+
+        string url = $"{baseUrl}/chat-with-artifact";
+        Debug.Log($"[NetworkManager] POST {url} (lang={lang})");
+
+        yield return SendAndHandleRequest(url, form, onDone, onError);
+    }
+
+    // ════════════════════════════════════════════════════════════════════
+    //  Shared HTTP-request / audio-playback routine
+    // ════════════════════════════════════════════════════════════════════
+    private IEnumerator SendAndHandleRequest(string url,
+                                             WWWForm form,
+                                             Action<string, string> onDone,
+                                             Action<string> onError)
+    {
         using (UnityWebRequest req = UnityWebRequest.Post(url, form))
         {
             req.downloadHandler = new DownloadHandlerAudioClip(url, AudioType.MPEG);
@@ -148,7 +165,7 @@ public class NetworkManager : MonoBehaviour
                 yield break;
             }
 
-            // 1. Get the AudioClip and play it
+            // Receive & play MP3
             AudioClip replyClip = DownloadHandlerAudioClip.GetContent(req);
             if (replyClip == null)
             {
@@ -156,21 +173,18 @@ public class NetworkManager : MonoBehaviour
                 yield break;
             }
 
-            // Ensure we have an AudioSource
-            AudioSource src = GetComponent<AudioSource>();
-            if (src == null) src = gameObject.AddComponent<AudioSource>();
+            AudioSource src = GetComponent<AudioSource>() ??
+                              gameObject.AddComponent<AudioSource>();
             src.clip = replyClip;
             src.Play();
 
-            // 2. Parse X-Metadata header
+            // Parse metadata header
             string transcript = "", response = "";
-            if (req.GetResponseHeaders()
-                  .TryGetValue("X-Metadata", out string metaJson))
+            if (req.GetResponseHeaders().TryGetValue("X-Metadata", out string metaJson))
             {
                 try
                 {
-                    MetadataHeader meta =
-                        JsonUtility.FromJson<MetadataHeader>(metaJson);
+                    var meta = JsonUtility.FromJson<MetadataHeader>(metaJson);
                     transcript = meta.transcript ?? "";
                     response = meta.response ?? "";
                 }
@@ -178,8 +192,8 @@ public class NetworkManager : MonoBehaviour
             }
             else Debug.LogWarning("X-Metadata header missing");
 
-            Debug.Log($"[ChatWithAudio] Transcript: {transcript}");
-            Debug.Log($"[ChatWithAudio] Response  : {response}");
+            Debug.Log($"[Chat] Transcript: {transcript}");
+            Debug.Log($"[Chat] Response  : {response}");
 
             onDone?.Invoke(transcript, response);
         }
